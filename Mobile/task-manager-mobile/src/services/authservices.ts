@@ -1,5 +1,5 @@
 import api from "./api";
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const loginUser = async (
   email: string,
@@ -11,11 +11,9 @@ export const loginUser = async (
   });
 
   const { token } = response.data;
-  console.log(token ,"token")
-  
 
   if (token) {
-    await SecureStore.setItemAsync("token", token);
+    await AsyncStorage.setItem("token", token);
   }
 
   return response.data;

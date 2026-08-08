@@ -2,25 +2,47 @@ import Task from "../models/task.model.js";
 
 export const createTask = async (req, res) => {
   try {
+    // const {
+    //   title,
+    //   description,
+    //   status,
+    //   priority,
+    //   dueDate,
+    //   reminder,
+    // } = req.body;
+    
     const {
       title,
       description,
       status,
       priority,
+      category,
+      completed,
       dueDate,
       reminder,
     } = req.body;
 
-    const task = await Task.create({
-      title,
-      description,
-      status,
-      priority,
-      dueDate,
-      reminder,
-      user: req.userId,
-    });
+    // const task = await Task.create({
+    //   title,
+    //   description,
+    //   status,
+    //   priority,
+    //   dueDate,
+    //   reminder,
+    //   user: req.userId,
+    // });
 
+const task = await Task.create({
+  title,
+  description,
+  status,
+  priority,
+  category,
+  completed,
+  dueDate,
+  reminder,
+  user: req.userId,
+});
     res.status(201).json({
       success: true,
       message: "Task created successfully",
@@ -32,18 +54,11 @@ export const createTask = async (req, res) => {
       message: error.message,
     });
   }
-}
+};
 
 export const getTasks = async (req, res) => {
   try {
-    const {
-      search,
-      status,
-      priority,
-      sort,
-      page = 1,
-      limit = 10,
-    } = req.query;
+    const { search, status, priority, sort, page = 1, limit = 10 } = req.query;
 
     const query = {
       user: req.userId,
@@ -130,7 +145,7 @@ export const updateTask = async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     if (!task)
@@ -170,11 +185,10 @@ export const deleteTask = async (req, res) => {
       message: "Task deleted successfully",
     });
     console.log("delete api hit");
-    
   } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
-}; 
+};
