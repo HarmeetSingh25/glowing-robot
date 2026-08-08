@@ -10,16 +10,29 @@ import aiRoutes from "./routes/ai.routes.js";
 
 const app = express();
 app.use(express.json());
-app.use(cors({
-  origin: "https://glowing-robot-one.vercel.app",
-  credentials: true
-}));app.use(cookieParser());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        origin === "http://localhost:5173" ||
+        origin.endsWith(".vercel.app")
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
+app.use(cookieParser());
 app.use(urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use(helmet());
 
 app.use("/api/auth", authRoutes);
-app.use("/api/tasks" , taskroute)
+app.use("/api/tasks", taskroute);
 app.use("/api/ai", aiRoutes);
 
 export default app;
