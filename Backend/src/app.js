@@ -11,7 +11,7 @@ import aiRoutes from "./routes/ai.routes.js";
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: "https://glowing-robot-one.vercel.app/",
+  origin: "https://glowing-robot-one.vercel.app",
   credentials: true
 }));app.use(cookieParser());
 app.use(urlencoded({ extended: true }));
