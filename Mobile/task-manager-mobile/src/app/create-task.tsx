@@ -6,25 +6,33 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  Switch,
+  ActivityIndicator,
 } from "react-native";
+
 import { useState } from "react";
 import { router } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { createTask  } from "../services/taskService";
+
+import { createTask } from "../services/taskService";
+import { getTaskSuggestion } from "../services/aiService";
 
 export default function CreateTaskScreen() {
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState("");
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+
   const [priority, setPriority] = useState("Medium");
-  const [category, setCategory] = useState("");
-const [dueDate, setDueDate] = useState(new Date());
+  const [category, setCategory] = useState("General");
 
-const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+  const [dueDate, setDueDate] = useState(new Date());
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
-const [reminder, setReminder] = useState<Date | null>(null);
-const [showReminderDatePicker, setShowReminderDatePicker] = useState(false);
-const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
+  const [reminder, setReminder] = useState<Date | null>(null);
+  const [showReminderDatePicker, setShowReminderDatePicker] = useState(false);
+  const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   const handleCreateTask = async () => {
@@ -33,20 +41,26 @@ const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
       return;
     }
 
+    if (!description.trim()) {
+      Alert.alert("Error", "Description is required");
+      return;
+    }
+
     try {
       setLoading(true);
 
-  const taskData = {
-  title,
-  description,
-  status: "Pending",
-  priority,
-  dueDate: dueDate.toISOString(),
-  reminder: reminder
-    ? reminder.toISOString()
-    : null,
-};
-    //   console.log("CREATING TASK:", taskData);
+      const taskData = {
+        title: title.trim(),
+        description: description.trim(),
+        status: "Pending",
+        priority,
+        category,
+        completed: false,
+        dueDate: dueDate.toISOString(),
+        reminder: reminder ? reminder.toISOString() : null,
+      };
+
+      console.log("CREATING TASK:", taskData);
 
       await createTask(taskData);
 
@@ -54,46 +68,163 @@ const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
 
       router.replace("/tasks");
     } catch (error: any) {
-    //   console.log(
-    //     "CREATE TASK ERROR:",
-    //     error.response?.data || error.message
-    //   );
+      console.log("CREATE TASK ERROR:", error.response?.data || error.message);
 
       Alert.alert(
         "Error",
-        error.response?.data?.message || "Failed to create task"
+        error.response?.data?.message || "Failed to create task",
       );
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Create Task</Text>
+  const handleAISuggestion = async () => {
+    if (!title.trim()) {
+      Alert.alert("Enter title", "Enter a task title first.");
+      return;
+    }
 
+    try {
+      setAiLoading(true);
+
+      const response = await getTaskSuggestion(title, description);
+
+      setAiSuggestion(response.suggestion);
+    } catch (error: any) {
+      console.log("AI ERROR:", error.response?.data || error.message);
+
+      Alert.alert(
+        "AI Error",
+        error.response?.data?.message || "Failed to generate AI suggestion",
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  return (
+  <ScrollView
+    style={styles.screen}
+    contentContainerStyle={styles.container}
+    showsVerticalScrollIndicator={false}
+  >
+    {/* Header */}
+    <View style={styles.header}>
+      <View>
+        <Text style={styles.eyebrow}>TASK MANAGER</Text>
+        <Text style={styles.title}>Create Task</Text>
+        <Text style={styles.subtitle}>
+          Add details and let AI help you plan it.
+        </Text>
+      </View>
+    </View>
+
+    {/* Basic Information */}
+    <View style={styles.card}>
+      <Text style={styles.sectionTitle}>Task Details</Text>
+
+      {/* Title */}
       <Text style={styles.label}>Title</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Enter task title"
+        placeholder="What needs to be done?"
+        placeholderTextColor="#94a3b8"
         value={title}
         onChangeText={setTitle}
       />
 
+      {/* Description */}
       <Text style={styles.label}>Description</Text>
 
       <TextInput
         style={[styles.input, styles.textArea]}
-        placeholder="Enter description"
+        placeholder="Add more details about this task..."
+        placeholderTextColor="#94a3b8"
         value={description}
         onChangeText={setDescription}
         multiline
       />
 
+      {/* AI Button */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.aiButton,
+          pressed && styles.pressed,
+          aiLoading && styles.disabledButton,
+        ]}
+        onPress={handleAISuggestion}
+        disabled={aiLoading}
+      >
+        {aiLoading ? (
+          <>
+            <ActivityIndicator color="#fff" size="small" />
+            <Text style={styles.aiButtonText}>Thinking...</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.aiIcon}>✨</Text>
+            <View style={styles.aiButtonContent}>
+              <Text style={styles.aiButtonText}>
+                Get AI Suggestions
+              </Text>
+
+              <Text style={styles.aiButtonSubtext}>
+                Generate a plan and best practices
+              </Text>
+            </View>
+          </>
+        )}
+      </Pressable>
+
+      {/* AI Result */}
+      {aiSuggestion ? (
+        <View style={styles.aiSuggestionBox}>
+          <View style={styles.aiSuggestionHeader}>
+            <View style={styles.aiSparkle}>
+              <Text>✨</Text>
+            </View>
+
+            <View>
+              <Text style={styles.aiSuggestionTitle}>
+                AI Suggestion
+              </Text>
+
+              <Text style={styles.aiSuggestionSubtitle}>
+                Powered by Mistral
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.aiDivider} />
+
+          <Text style={styles.aiSuggestionText}>
+            {aiSuggestion}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+
+    {/* Category & Priority */}
+    <View style={styles.card}>
+      <Text style={styles.sectionTitle}>Organization</Text>
+
+      {/* Category */}
+      <Text style={styles.label}>Category</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. Work, Personal, Study"
+        placeholderTextColor="#94a3b8"
+        value={category}
+        onChangeText={setCategory}
+      />
+
+      {/* Priority */}
       <Text style={styles.label}>Priority</Text>
 
-      <View style={styles.row}>
+      <View style={styles.priorityContainer}>
         {["Low", "Medium", "High"].map((item) => (
           <Pressable
             key={item}
@@ -103,10 +234,18 @@ const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
             ]}
             onPress={() => setPriority(item)}
           >
+            <View
+              style={[
+                styles.priorityDot,
+                priority === item && styles.selectedPriorityDot,
+              ]}
+            />
+
             <Text
               style={[
                 styles.priorityText,
-                priority === item && styles.selectedPriorityText,
+                priority === item &&
+                  styles.selectedPriorityText,
               ]}
             >
               {item}
@@ -114,95 +253,134 @@ const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
           </Pressable>
         ))}
       </View>
+    </View>
 
-      <Text style={styles.label}>Category</Text>
+    {/* Schedule */}
+    <View style={styles.card}>
+      <Text style={styles.sectionTitle}>Schedule</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="e.g. Work, Personal"
-        value={category}
-        onChangeText={setCategory}
-      />
+      {/* Due Date */}
+      <Text style={styles.label}>Due Date</Text>
 
-<Text style={styles.label}>Due Date</Text>
-
-<Pressable
-  style={styles.dateButton}
-  onPress={() => setShowDueDatePicker(true)}
->
-  <Text>
-    {dueDate.toLocaleDateString()}
-  </Text>
-</Pressable>
-
-{showDueDatePicker && (
-  <DateTimePicker
-    value={dueDate}
-    mode="date"
-    minimumDate={new Date()}
-    onChange={(event, selectedDate) => {
-      setShowDueDatePicker(false);
-
-      if (selectedDate) {
-        setDueDate(selectedDate);
-      }
-    }}
-  />
-)}
-
-<Text style={styles.label}>Reminder</Text>
-
-<Pressable
-  style={styles.dateButton}
-  onPress={() => setShowReminderDatePicker(true)}
->
-  <Text>
-    {reminder
-      ? reminder.toLocaleString()
-      : "Set reminder"}
-  </Text>
-</Pressable>
-
-{showReminderDatePicker && (
-  <DateTimePicker
-    value={reminder || new Date()}
-    mode="date"
-    minimumDate={new Date()}
-    onChange={(event, selectedDate) => {
-      setShowReminderDatePicker(false);
-
-      if (selectedDate) {
-        setReminder(selectedDate);
-        setShowReminderTimePicker(true);
-      }
-    }}
-  />
-)}
-
-{showReminderTimePicker && reminder && (
-  <DateTimePicker
-    value={reminder}
-    mode="time"
-    onChange={(event, selectedTime) => {
-      setShowReminderTimePicker(false);
-
-      if (selectedTime) {
-        setReminder(selectedTime);
-      }
-    }}
-  />
-)}
       <Pressable
-        style={styles.createButton}
-        onPress={handleCreateTask}
-        disabled={loading}
+        style={styles.dateButton}
+        onPress={() => setShowDueDatePicker(true)}
       >
-        <Text style={styles.createButtonText}>
-          {loading ? "Creating..." : "Create Task"}
-        </Text>
+        <View style={styles.dateIcon}>
+          <Text>📅</Text>
+        </View>
+
+        <View style={styles.dateContent}>
+          <Text style={styles.dateLabel}>Due date</Text>
+
+          <Text style={styles.dateValue}>
+            {dueDate.toLocaleDateString()}
+          </Text>
+        </View>
+
+        <Text style={styles.chevron}>›</Text>
       </Pressable>
-    </ScrollView>
-  );
+
+      {showDueDatePicker && (
+        <DateTimePicker
+          value={dueDate}
+          mode="date"
+          minimumDate={new Date()}
+          onChange={(event, selectedDate) => {
+            setShowDueDatePicker(false);
+
+            if (selectedDate) {
+              setDueDate(selectedDate);
+            }
+          }}
+        />
+      )}
+
+      {/* Reminder */}
+      <Text style={styles.label}>Reminder</Text>
+
+      <Pressable
+        style={styles.dateButton}
+        onPress={() => setShowReminderDatePicker(true)}
+      >
+        <View style={styles.dateIcon}>
+          <Text>🔔</Text>
+        </View>
+
+        <View style={styles.dateContent}>
+          <Text style={styles.dateLabel}>Reminder</Text>
+
+          <Text style={styles.dateValue}>
+            {reminder
+              ? reminder.toLocaleString()
+              : "Set a reminder"}
+          </Text>
+        </View>
+
+        <Text style={styles.chevron}>›</Text>
+      </Pressable>
+
+      {/* Reminder Date Picker */}
+      {showReminderDatePicker && (
+        <DateTimePicker
+          value={reminder || new Date()}
+          mode="date"
+          minimumDate={new Date()}
+          onChange={(event, selectedDate) => {
+            setShowReminderDatePicker(false);
+
+            if (selectedDate) {
+              setReminder(selectedDate);
+              setShowReminderTimePicker(true);
+            }
+          }}
+        />
+      )}
+
+      {/* Reminder Time Picker */}
+      {showReminderTimePicker && reminder && (
+        <DateTimePicker
+          value={reminder}
+          mode="time"
+          onChange={(event, selectedTime) => {
+            setShowReminderTimePicker(false);
+
+            if (selectedTime) {
+              setReminder(selectedTime);
+            }
+          }}
+        />
+      )}
+    </View>
+
+    {/* Create Button */}
+    <Pressable
+      style={({ pressed }) => [
+        styles.createButton,
+        loading && styles.disabledButton,
+        pressed && styles.pressed,
+      ]}
+      onPress={handleCreateTask}
+      disabled={loading}
+    >
+      {loading ? (
+        <ActivityIndicator color="#fff" />
+      ) : (
+        <>
+          <Text style={styles.createButtonText}>
+            Create Task
+          </Text>
+
+          <Text style={styles.createArrow}>→</Text>
+        </>
+      )}
+    </Pressable>
+
+    <Text style={styles.footerText}>
+      Your task will be saved securely to your account.
+    </Text>
+  </ScrollView>
+);
 }
 
 const styles = StyleSheet.create({
@@ -258,11 +436,12 @@ const styles = StyleSheet.create({
   },
 
   priorityText: {
-    textTransform: "capitalize",
+    color: "#111827",
   },
 
   selectedPriorityText: {
     color: "#fff",
+    fontWeight: "600",
   },
 
   dateButton: {
@@ -273,17 +452,20 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
 
-  reminderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 25,
+  dateText: {
+    fontSize: 16,
+    color: "#111827",
   },
 
   createButton: {
     backgroundColor: "#111827",
     padding: 16,
     borderRadius: 10,
+    marginTop: 10,
+  },
+
+  disabledButton: {
+    opacity: 0.6,
   },
 
   createButtonText: {

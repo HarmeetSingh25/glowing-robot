@@ -39,10 +39,7 @@ export default function EditTaskScreen() {
       setPriority(task.priority || "Medium");
       setStatus(task.status || "Pending");
     } catch (error: any) {
-      console.log(
-        "GET TASK ERROR:",
-        error.response?.data || error.message
-      );
+      console.log("GET TASK ERROR:", error.response?.data || error.message);
 
       Alert.alert("Error", "Failed to load task");
     } finally {
@@ -68,10 +65,7 @@ export default function EditTaskScreen() {
 
       console.log("UPDATING TASK:", taskData);
 
-      const response = await updateTask(
-        id as string,
-        taskData
-      );
+      const response = await updateTask(id as string, taskData);
 
       console.log("UPDATE RESPONSE:", response);
 
@@ -79,14 +73,11 @@ export default function EditTaskScreen() {
 
       router.replace("/tasks");
     } catch (error: any) {
-      console.log(
-        "UPDATE TASK ERROR:",
-        error.response?.data || error.message
-      );
+      console.log("UPDATE TASK ERROR:", error.response?.data || error.message);
 
       Alert.alert(
         "Error",
-        error.response?.data?.message || "Failed to update task"
+        error.response?.data?.message || "Failed to update task",
       );
     } finally {
       setSaving(false);
@@ -130,17 +121,12 @@ export default function EditTaskScreen() {
         {["Low", "Medium", "High"].map((item) => (
           <Pressable
             key={item}
-            style={[
-              styles.option,
-              priority === item && styles.selected,
-            ]}
+            style={[styles.option, priority === item && styles.selected]}
             onPress={() => setPriority(item)}
           >
             <Text
               style={
-                priority === item
-                  ? styles.selectedText
-                  : styles.optionText
+                priority === item ? styles.selectedText : styles.optionText
               }
             >
               {item}
@@ -152,28 +138,19 @@ export default function EditTaskScreen() {
       <Text style={styles.label}>Status</Text>
 
       <View style={styles.statusContainer}>
-        {["Pending", "In Progress", "Completed"].map(
-          (item) => (
-            <Pressable
-              key={item}
-              style={[
-                styles.statusButton,
-                status === item && styles.selected,
-              ]}
-              onPress={() => setStatus(item)}
+        {["Pending", "In Progress", "Completed"].map((item) => (
+          <Pressable
+            key={item}
+            style={[styles.statusButton, status === item && styles.selected]}
+            onPress={() => setStatus(item)}
+          >
+            <Text
+              style={status === item ? styles.selectedText : styles.optionText}
             >
-              <Text
-                style={
-                  status === item
-                    ? styles.selectedText
-                    : styles.optionText
-                }
-              >
-                {item}
-              </Text>
-            </Pressable>
-          )
-        )}
+              {item}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       <Pressable
